@@ -2345,7 +2345,8 @@ static void process_watch_command(conn *c, token_t *tokens, const size_t ntokens
             break;
         case LOGGER_ADD_WATCHER_OK:
             conn_set_state(c, conn_watch);
-            event_del(&c->event);
+            // DEMIKERNEL: Not sure if free here is correct because it also closes socket
+            bufferevent_free(c->buffev);
             break;
     }
 }
@@ -2663,7 +2664,8 @@ static void process_lru_crawler_command(conn *c, token_t *tokens, const size_t n
                 //out_string(c, "OK");
                 // TODO: Don't reuse conn_watch here.
                 conn_set_state(c, conn_watch);
-                event_del(&c->event);
+                // DEMIKERNEL: Not sure if free here is correct because it also closes socket
+                bufferevent_free(c->buffev);
                 break;
             case CRAWLER_RUNNING:
                 out_string(c, "BUSY currently processing crawler request");
@@ -2698,7 +2700,8 @@ static void process_lru_crawler_command(conn *c, token_t *tokens, const size_t n
         switch(rv) {
             case CRAWLER_OK:
                 conn_set_state(c, conn_watch);
-                event_del(&c->event);
+                // DEMIKERNEL: Not sure if free here is correct because it also closes socket
+                bufferevent_free(c->buffev);
                 break;
             case CRAWLER_RUNNING:
                 out_string(c, "BUSY currently processing crawler request");

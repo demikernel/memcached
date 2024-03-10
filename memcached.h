@@ -837,8 +837,11 @@ struct conn {
     enum conn_states  state;
     enum bin_substates substate;
     rel_time_t last_cmd_time;
-    struct event event;
     short  ev_flags;
+    struct event event;
+    short buffev_flags;
+    struct bufferevent *buffev;
+    // struct event event;
     short  which;   /** which events were just triggered */
 
     char   *rbuf;   /** buffer to read commands into */
@@ -983,7 +986,8 @@ void timeout_conn(conn *c);
 void proxy_reload_notify(LIBEVENT_THREAD *t);
 #endif
 void return_io_pending(io_pending_t *io);
-void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags, int read_buffer_size,
+void dispatch_conn_new(int sfd, enum conn_states init_state, 
+    int event_flags, int read_buffer_size,
     enum network_transport transport, void *ssl, uint64_t conntag, enum protocol bproto);
 void sidethread_conn_close(conn *c);
 
