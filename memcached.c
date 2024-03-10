@@ -557,6 +557,7 @@ void conn_close_idle(conn *c) {
 }
 
 static void _conn_event_readd(conn *c) {
+    fprintf(stderr, "conn_event_readd\n");
     c->buffev_flags = EV_READ | EV_PERSIST;
     bufferevent_setcb(c->buffev, readcb, writecb, errorcb, (void *)c);
     if (bufferevent_enable(c->buffev, c->buffev_flags)) {
@@ -849,7 +850,7 @@ conn *conn_new(const int sfd, enum conn_states init_state,
         }
         c->buffev = NULL;
     } else {
-        buffev = bufferevent_socket_new(base, c->sfd, BEV_OPT_CLOSE_ON_FREE);
+        buffev = bufferevent_socket_new(base, c->sfd, 0);
         if (buffev == NULL) {
             fprintf(stderr, "conn_new: bufferevent_socket_new failed\n");
             return NULL;
@@ -3135,7 +3136,6 @@ static void drive_machine(conn *c) {
 
         switch(c->state) {
         case conn_listening:
-            fprintf(stderr, "drive_machine: conn_listening\n");
             addrlen = sizeof(addr);
 #ifdef HAVE_ACCEPT4
             if (use_accept4) {
@@ -3242,7 +3242,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_waiting:
-            fprintf(stderr, "drive_machine: conn_waiting\n");
             rbuf_release(c);
             if (!update_event(c, EV_READ | EV_PERSIST)) {
                 if (settings.verbose > 0)
@@ -3256,7 +3255,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_read:
-            fprintf(stderr, "drive_machine: conn_read\n");
             if (!IS_UDP(c->transport)) {
                 // Assign a read buffer if necessary.
                 if (!rbuf_alloc(c)) {
@@ -3286,7 +3284,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_parse_cmd:
-            fprintf(stderr, "drive_machine: conn_parse_cmd\n");
             c->noreply = false;
             if (c->try_read_command(c) == 0) {
                 /* we need more data! */
@@ -3301,7 +3298,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_new_cmd:
-            fprintf(stderr, "drive_machine: conn_new_cmd\n");
             /* Only process nreqs at a time to avoid starving other
                connections */
 
@@ -3322,19 +3318,22 @@ static void drive_machine(conn *c) {
                        hack we should just put in a request to write data,
                        because that should be possible ;-)
                     */
-                    if (!update_event(c, EV_WRITE | EV_PERSIST)) {
-                        if (settings.verbose > 0)
-                            fprintf(stderr, "Couldn't update event\n");
-                        conn_set_state(c, conn_closing);
-                        break;
-                    }
+                    /* DEMIKERNEL: Since we are using the bufferevent API
+                     * we can just call trigger instead of updating the event.
+                    */
+                    bufferevent_trigger(c->buffev, EV_READ, 0);
+                    // if (!update_event(c, EV_WRITE | EV_PERSIST)) {
+                    //     if (settings.verbose > 0)
+                    //         fprintf(stderr, "Couldn't update event\n");
+                    //     conn_set_state(c, conn_closing);
+                    //     break;
+                    // }
                 }
                 stop = true;
             }
             break;
 
         case conn_nread:
-            fprintf(stderr, "drive_machine: conn_nread\n");
             if (c->rlbytes == 0) {
                 complete_nread(c);
                 break;
@@ -3435,7 +3434,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_swallow:
-            fprintf(stderr, "drive_machine: conn_swallow\n");
             /* we are reading sbytes and throwing them away */
             if (c->sbytes <= 0) {
                 conn_set_state(c, conn_new_cmd);
@@ -3482,9 +3480,7 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_write:
-            fprintf(stderr, "drive_machine: conn_write\n");
         case conn_mwrite:
-            fprintf(stderr, "drive_machine: conn_mwrite\n");
             /* have side IO's that must process before transmit() can run.
              * remove the connection from the worker thread and dispatch the
              * IO queue
@@ -3532,7 +3528,6 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_closing:
-            fprintf(stderr, "drive_machine: conn_closing\n");
             if (IS_UDP(c->transport))
                 conn_cleanup(c);
             else
@@ -3541,35 +3536,29 @@ static void drive_machine(conn *c) {
             break;
 
         case conn_closed:
-            fprintf(stderr, "drive_machine: conn_closed\n");
             /* This only happens if dormando is an idiot. */
             abort();
             break;
 
         case conn_watch:
-            fprintf(stderr, "drive_machine: conn_watch\n");
             /* We handed off our connection to the logger thread. */
             stop = true;
             break;
         case conn_io_queue:
-            fprintf(stderr, "drive_machine: conn_io_queue\n");
             /* Woke up while waiting for an async return, but not ready. */
             bufferevent_free(c->buffev);
             conn_set_state(c, conn_io_pending);
             stop = true;
             break;
         case conn_io_pending:
-            fprintf(stderr, "drive_machine: conn_io_pending\n");
             /* Should not be reachable */
             assert(false);
             break;
         case conn_io_resume:
-            fprintf(stderr, "drive_machine: conn_io_resume\n");
             /* Complete our queued IO's from within the worker thread. */
             conn_set_state(c, conn_mwrite);
             break;
         case conn_max_state:
-            fprintf(stderr, "drive_machine: conn_max_state\n");
             assert(false);
             break;
         }
