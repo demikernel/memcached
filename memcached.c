@@ -3103,7 +3103,6 @@ void errorcb(struct bufferevent *buffev, short event, void *arg) {
     c = (conn *)arg;
     
     if (event & BEV_EVENT_EOF) {
-        fprintf(stderr, "errorcb: Disconnect\n");
         c->close_reason = NORMAL_CLOSE;
         conn_set_state(c, conn_closing);
         drive_machine(c);
@@ -3111,9 +3110,7 @@ void errorcb(struct bufferevent *buffev, short event, void *arg) {
         fprintf(stderr, "errorcb: Event error\n");
         conn_set_state(c, conn_closing);
         drive_machine(c);
-    } else if (event & BEV_EVENT_TIMEOUT) {
-        fprintf(stderr, "errorcb: Timeout\n");
-    }
+    } else if (event & BEV_EVENT_TIMEOUT) {}
 }
 
 static void drive_machine(conn *c) {
