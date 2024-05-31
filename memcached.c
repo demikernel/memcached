@@ -2587,10 +2587,10 @@ static bool update_event(conn *c, const int new_flags) {
         return true;
 
     if (bufferevent_disable(c->buffev, c->ev_flags) == -1) return false;
-    
+
     bufferevent_setfd(c->buffev, c->sfd);
     bufferevent_setcb(c->buffev, readcb, writecb, errorcb, (void *)c);
-    
+
     if (bufferevent_enable(c->buffev, new_flags) == -1) return false;
     c->ev_flags = new_flags;
 
@@ -3101,7 +3101,7 @@ void errorcb(struct bufferevent *buffev, short event, void *arg) {
     conn *c;
 
     c = (conn *)arg;
-    
+
     if (event & BEV_EVENT_EOF) {
         c->close_reason = NORMAL_CLOSE;
         conn_set_state(c, conn_closing);
@@ -3384,7 +3384,7 @@ static void drive_machine(conn *c) {
              *  callback when you reach EOF. Hack for now is to set
              *  res to -1, if read returns 0, to mean that there is no
              *  more data to read. We also set the errno, since libevent
-             *  doesn't do that. */ 
+             *  doesn't do that. */
             if (res == 0) {
                 errno = EWOULDBLOCK;
                 res = -1;

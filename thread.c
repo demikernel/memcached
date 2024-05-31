@@ -618,7 +618,7 @@ static void thread_libevent_process(evutil_socket_t fd, short which, void *arg) 
                 c = conn_new(item->sfd, item->init_state, item->event_flags,
                                    item->read_buffer_size, item->transport,
                                    me->base, item->ssl, item->conntag, item->bproto);
-                
+
                 if (c == NULL) {
                     if (IS_UDP(item->transport)) {
                         fprintf(stderr, "Can't listen for events on UDP socket\n");
